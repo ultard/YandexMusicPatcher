@@ -1,0 +1,45 @@
+﻿name: Build and Release
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        runtime-id: [ win-x64 ]
+    
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore dependencies
+            run: dotnet restore YandexMusicPatcher.sln
+
+    - name: Build SelfContained
+      run: dotnet publish YandexMusicPatcher.sln -c Release -r ${{ matrix.runtime-id }} --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -o ./publish/self-contained
+
+    - name: Build FrameworkDependent
+      run: dotnet publish YandexMusicPatcher.sln -c Release -r ${{ matrix.runtime-id }} --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -o ./publish/framework-dependentndent
+
+    - name: Upload SelfContained artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: YandexPatcher-SelfContained-${{ matrix.runtime-id }}
+        path: ./publish/self-contained/YandexPatcher.exe
+        
+    - name: Upload FrameworkDependent artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: YandexPatcher-FrameworkDependent-${{ matrix.runtime-id }}
+        path: ./publish/framework-dependent/YandexPatcher.exe
